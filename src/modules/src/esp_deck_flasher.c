@@ -45,3 +45,10 @@
 #include "deck.h"
 #include "uart2.h"
 
+static bool hasStarted = false;
+
+bool espDeckFlasherCheckVersionAndBoot()
+{
+    hasStarted = true;
+    return true;
+}
