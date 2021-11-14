@@ -33,4 +33,6 @@
 
 bool espDeckFlasherCheckVersionAndBoot();
 
+bool espDeckFlasherWrite(const uint32_t memAddr, const uint8_t writeLen, const uint8_t *buffer);
+
 uint8_t espDeckFlasherPropertiesQuery();
