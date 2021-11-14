@@ -32,3 +32,5 @@
 #include <stdint.h>
 
 bool espDeckFlasherCheckVersionAndBoot();
+
+uint8_t espDeckFlasherPropertiesQuery();
