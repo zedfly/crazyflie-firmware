@@ -46,6 +46,7 @@
 #include "system.h"
 #include "uart1.h"
 #include "uart2.h"
+#include "aideck.h"
 
 static bool isInit = false;
 static uint8_t byte;
