@@ -46,6 +46,7 @@
 #include "system.h"
 #include "uart1.h"
 #include "uart2.h"
+#include "esp_deck_flasher.h"
 #include "aideck.h"
 
 static bool isInit = false;
@@ -54,13 +55,24 @@ static uint8_t byte;
 //Uncomment when NINA printout read is desired from console
 //#define DEBUG_NINA_PRINT
 
-#ifdef DEBUG_NINA_PRINT
 static void NinaTask(void *param)
 {
+    systemWaitStart();
+    vTaskDelay(M2T(3000));
+    if (espDeckFlasherCheckVersionAndBoot() == false)
+    {
+        DEBUG_PRINT("ESP32 not booted.");
+        while (1)
+        {
+            vTaskDelay(portMAX_DELAY);
+        }
+    }
+#ifdef DEBUG_NINA_PRINT
     systemWaitStart();
     vTaskDelay(M2T(1000));
     DEBUG_PRINT("Starting reading out NINA debugging messages:\n");
     vTaskDelay(M2T(2000));
+    uart2Init(115200);
 
     // Pull the reset button to get a clean read out of the data
     pinMode(DECK_GPIO_IO4, OUTPUT);
@@ -78,8 +90,12 @@ static void NinaTask(void *param)
             consolePutchar(byte);
         }
     }
-}
 #endif
+    while (1)
+    {
+        vTaskDelay(portMAX_DELAY);
+    }
+}
 
 static void Gap8Task(void *param)
 {
@@ -112,14 +128,9 @@ static void aideckInit(DeckInfo *info)
     xTaskCreate(Gap8Task, AI_DECK_GAP_TASK_NAME, AI_DECK_TASK_STACKSIZE, NULL,
                 AI_DECK_TASK_PRI, NULL);
 
-#ifdef DEBUG_NINA_PRINT
-    // Initialize the UART for the NINA
-    uart2Init(115200);
     // Initialize task for the NINA
     xTaskCreate(NinaTask, AI_DECK_NINA_TASK_NAME, AI_DECK_TASK_STACKSIZE, NULL,
                 AI_DECK_TASK_PRI, NULL);
-
-#endif
 
     isInit = true;
 }
