@@ -141,6 +141,16 @@ static bool aideckTest()
     return true;
 }
 
+static const DeckMemDef_t memoryDef = {
+    .write = espDeckFlasherWrite,
+    .read = 0,
+    .properties = espDeckFlasherPropertiesQuery,
+    .supportsUpgrade = true,
+
+    .requiredSize = ESP_BITSTREAM_SIZE,
+    // .requiredHash = ESP_BITSTREAM_CRC,
+};
+
 static const DeckDriver aideck_deck = {
     .vid = 0xBC,
     .pid = 0x12,
@@ -148,6 +158,8 @@ static const DeckDriver aideck_deck = {
 
     .usedGpio = DECK_USING_IO_4,
     .usedPeriph = DECK_USING_UART1,
+
+    .memoryDef = &memoryDef,
 
     .init = aideckInit,
     .test = aideckTest,
