@@ -37,12 +37,14 @@
 #define ESP_PARTITION_ADDRESS 0x8000
 #define ESP_FW_ADDRESS 0x10000
 
-bool espblSync();
+bool espblSync(uint8_t *send_buffer);
 
-bool espblFlashBegin(uint32_t number_of_data_packets, uint32_t firmware_size, uint32_t flash_offset);
+bool espblFlashBegin(uint8_t *send_buffer, uint32_t number_of_data_packets, uint32_t firmware_size, uint32_t flash_offset);
+
+bool espblFlashData(uint8_t *send_buffer, uint32_t flash_data_size, uint32_t sequence_number);
 
 bool espblFlashWrite(uint8_t *esp_fw, uint32_t esp_fw_size, uint32_t sequence_number);
 
-bool spiAttach();
+bool spiAttach(uint8_t *send_buffer);
 
 void espblInit();

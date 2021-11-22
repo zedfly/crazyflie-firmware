@@ -52,15 +52,14 @@ static uint8_t size_index = 0;
 static uint8_t value_index = 0;
 static uint8_t previous_db = 0;
 
-static uint8_t sendBuffer[ESP_MTU + 10 + 16];
 static uint32_t sendSize;
 
-static uint8_t generateChecksum(esp_uart_send_packet *sender_pckt)
+static uint8_t generateChecksum(uint8_t *send_buffer, esp_uart_send_packet *sender_pckt)
 {
     uint8_t checksum = 0xEF; // seed
     for (int i = 0; i < sender_pckt->data_size - 16; i++)
     {
-        checksum ^= sender_pckt->data[16 + i];
+        checksum ^= send_buffer[9 + 16 + i];
     }
     return checksum;
 }
@@ -68,7 +67,7 @@ static uint8_t generateChecksum(esp_uart_send_packet *sender_pckt)
 static void sendSLIPPacket(uint32_t size, uint8_t *data, coms_putchar_t sendBufferFn)
 {
     uint32_t i;
-    static uint8_t send_buffer[2 * ESP_MTU + 10 + 16];
+    static uint8_t send_buffer[UART2_DMA_BUFFER_SIZE];
     uint32_t send_size = 0;
 
     for (i = 0; i < size; i++)
@@ -264,38 +263,33 @@ static bool espblReceivePacket(esp_uart_receive_packet *receiver_pckt, esp_uart_
     return status_ok == receiver_pckt->status && packet_received == SLIP_SUCCESS;
 }
 
-static void espblAssembleBuffer(esp_uart_send_packet *sender_pckt)
+static void espblAssembleBuffer(uint8_t *send_buffer, esp_uart_send_packet *sender_pckt)
 {
     sendSize = sender_pckt->data_size + ESP_OVERHEAD_LEN + 2;
 
-    sendBuffer[0] = 0xC0;
-    sendBuffer[1] = DIR_CMD;
-    sendBuffer[2] = sender_pckt->command;
-    sendBuffer[3] = (uint8_t)((sender_pckt->data_size >> 0) & 0x000000FF);
-    sendBuffer[4] = (uint8_t)((sender_pckt->data_size >> 8) & 0x000000FF);
+    send_buffer[0] = 0xC0;
+    send_buffer[1] = DIR_CMD;
+    send_buffer[2] = sender_pckt->command;
+    send_buffer[3] = (uint8_t)((sender_pckt->data_size >> 0) & 0x000000FF);
+    send_buffer[4] = (uint8_t)((sender_pckt->data_size >> 8) & 0x000000FF);
 
     if (sender_pckt->command == FLASH_DATA) // or MEM_DATA
     {
-        uint32_t checksum = (uint32_t)generateChecksum(sender_pckt);
-        sendBuffer[5] = (uint8_t)((checksum >> 0) & 0x000000FF);
-        sendBuffer[6] = (uint8_t)((checksum >> 8) & 0x000000FF);
-        sendBuffer[7] = (uint8_t)((checksum >> 16) & 0x000000FF);
-        sendBuffer[8] = (uint8_t)((checksum >> 24) & 0x000000FF);
+        uint32_t checksum = (uint32_t)generateChecksum(send_buffer, sender_pckt);
+        send_buffer[5] = (uint8_t)((checksum >> 0) & 0x000000FF);
+        send_buffer[6] = (uint8_t)((checksum >> 8) & 0x000000FF);
+        send_buffer[7] = (uint8_t)((checksum >> 16) & 0x000000FF);
+        send_buffer[8] = (uint8_t)((checksum >> 24) & 0x000000FF);
     }
     else
     {
-        sendBuffer[5] = 0x00;
-        sendBuffer[6] = 0x00;
-        sendBuffer[7] = 0x00;
-        sendBuffer[8] = 0x00;
+        send_buffer[5] = 0x00;
+        send_buffer[6] = 0x00;
+        send_buffer[7] = 0x00;
+        send_buffer[8] = 0x00;
     }
 
-    if (sender_pckt->data_size)
-    {
-        memcpy(&sendBuffer[9], sender_pckt->data, sender_pckt->data_size);
-    }
-
-    sendBuffer[9 + sender_pckt->data_size] = 0xC0;
+    send_buffer[9 + sender_pckt->data_size] = 0xC0;
 }
 
 static void clearUart2Buffer(coms_getDataWithTimeout_t getDataWithTimeout)
@@ -309,12 +303,12 @@ static void clearUart2Buffer(coms_getDataWithTimeout_t getDataWithTimeout)
     return;
 }
 
-bool espblExchange(esp_uart_receive_packet *receiver_pckt, esp_uart_send_packet *sender_pckt, coms_putchar_t putchar, coms_getDataWithTimeout_t getDataWithTimeout, uint32_t timeout_ticks)
+bool espblExchange(uint8_t *send_buffer, esp_uart_receive_packet *receiver_pckt, esp_uart_send_packet *sender_pckt, coms_putchar_t putchar, coms_getDataWithTimeout_t getDataWithTimeout, uint32_t timeout_ticks)
 {
     clearUart2Buffer(getDataWithTimeout);
-    espblAssembleBuffer(sender_pckt);
+    espblAssembleBuffer(send_buffer, sender_pckt);
 
-    sendSLIPPacket(sendSize, sendBuffer, putchar);
+    sendSLIPPacket(sendSize, send_buffer, putchar);
 
     return espblReceivePacket(receiver_pckt, sender_pckt, getDataWithTimeout, timeout_ticks);
 }

@@ -54,11 +54,11 @@ bool espDeckFlasherCheckVersionAndBoot()
     return true;
 }
 
-uint32_t sequence_number;
-uint32_t number_of_data_packets;
-uint8_t send_buffer[ESP_MTU];
-uint8_t overshoot = 0;
-uint32_t send_buffer_idx;
+static uint32_t sequence_number;
+static uint32_t number_of_data_packets;
+static uint8_t send_buffer[ESP_MTU + 10 + 16];
+static uint8_t overshoot = 0;
+static uint32_t send_buffer_idx;
 
 bool espDeckFlasherWrite(const uint32_t memAddr, const uint8_t writeLen, const uint8_t *buffer)
 {
@@ -66,12 +66,12 @@ bool espDeckFlasherWrite(const uint32_t memAddr, const uint8_t writeLen, const u
     {
         uart2Init(115200);
         espblInit();
-        if (!espblSync())
+        if (!espblSync(&send_buffer[0]))
         {
             DEBUG_PRINT("Sync failed\n");
             return false;
         }
-        if (!spiAttach())
+        if (!spiAttach(&send_buffer[0]))
         {
             DEBUG_PRINT("SPI attach failed\n");
             return false;
@@ -80,7 +80,7 @@ bool espDeckFlasherWrite(const uint32_t memAddr, const uint8_t writeLen, const u
         number_of_data_packets = (((ESP_BITSTREAM_SIZE - 1) / ESP_MTU) + ((ESP_BITSTREAM_SIZE / ESP_MTU) < 0 ? 0 : 1)) >> 0;
         DEBUG_PRINT("Will send %lu data packets\n", number_of_data_packets);
 
-        if (!espblFlashBegin(number_of_data_packets, ESP_BITSTREAM_SIZE, ESP_FW_ADDRESS)) // placeholder erase size
+        if (!espblFlashBegin(&send_buffer[0], number_of_data_packets, ESP_BITSTREAM_SIZE, ESP_FW_ADDRESS)) // placeholder erase size
         {
             DEBUG_PRINT("Failed to start flashing\n");
             return 0;
@@ -93,12 +93,12 @@ bool espDeckFlasherWrite(const uint32_t memAddr, const uint8_t writeLen, const u
     if (send_buffer_idx + writeLen >= ESP_MTU)
     {
         overshoot = send_buffer_idx + writeLen - ESP_MTU;
-        memcpy(&send_buffer[send_buffer_idx], buffer, writeLen - overshoot);
+        memcpy(&send_buffer[9 + 16 + send_buffer_idx], buffer, writeLen - overshoot);
         send_buffer_idx += writeLen - overshoot;
     }
     else
     {
-        memcpy(&send_buffer[send_buffer_idx], buffer, writeLen);
+        memcpy(&send_buffer[9 + 16 + send_buffer_idx], buffer, writeLen);
         send_buffer_idx += writeLen;
     }
     DEBUG_PRINT("send_buffer_idx: %lu\n", send_buffer_idx);
@@ -106,7 +106,7 @@ bool espDeckFlasherWrite(const uint32_t memAddr, const uint8_t writeLen, const u
     // send buffer if full
     if (send_buffer_idx == ESP_MTU || ((sequence_number == number_of_data_packets - 1) && (send_buffer_idx == ESP_BITSTREAM_SIZE % ESP_MTU)))
     {
-        if (!espblFlashWrite(&send_buffer[0], send_buffer_idx, sequence_number))
+        if (!espblFlashData(&send_buffer[0], send_buffer_idx, sequence_number))
         {
             DEBUG_PRINT("Flash write failed\n");
             return false;
@@ -120,7 +120,7 @@ bool espDeckFlasherWrite(const uint32_t memAddr, const uint8_t writeLen, const u
         if (overshoot)
         {
             DEBUG_PRINT("Overshoot: %d\n", overshoot);
-            memcpy(&send_buffer[0], &buffer[writeLen - overshoot], overshoot);
+            memcpy(&send_buffer[9 + 16 + 0], &buffer[writeLen - overshoot], overshoot);
             send_buffer_idx = overshoot;
             overshoot = 0;
         }
@@ -138,7 +138,7 @@ bool espDeckFlasherWrite(const uint32_t memAddr, const uint8_t writeLen, const u
         {
             DEBUG_PRINT("Last radio packet triggered overshoot of %lu bytes\n", send_buffer_idx);
 
-            if (!espblFlashWrite(&send_buffer[0], send_buffer_idx, sequence_number))
+            if (!espblFlashData(&send_buffer[0], send_buffer_idx, sequence_number))
             {
                 DEBUG_PRINT("Flash write failed\n");
                 return false;
