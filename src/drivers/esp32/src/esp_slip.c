@@ -28,6 +28,7 @@
 
 #include <string.h>
 #include "esp_slip.h"
+#include "uart2.h"
 
 #define ESP_OVERHEAD_LEN 8
 
@@ -64,9 +65,11 @@ static uint8_t generateChecksum(esp_uart_send_packet *sender_pckt)
     return checksum;
 }
 
-static void sendSLIPPacket(uint32_t size, uint8_t *data, coms_putchar_t putCharFnc)
+static void sendSLIPPacket(uint32_t size, uint8_t *data, coms_putchar_t sendBufferFn)
 {
     uint32_t i;
+    static uint8_t send_buffer[2 * ESP_MTU + 10 + 16];
+    uint32_t send_size = 0;
 
     for (i = 0; i < size; i++)
     {
@@ -74,14 +77,25 @@ static void sendSLIPPacket(uint32_t size, uint8_t *data, coms_putchar_t putCharF
         {
             for (int j = 0; j < 2; j++)
             {
-                j == 0 ? putCharFnc(0xDB) : data[i] == 0xC0 ? putCharFnc(0xDC)
-                                                            : putCharFnc(0xDD);
+                j == 0 ? (send_buffer[send_size] = 0xDB) : data[i] == 0xC0 ? (send_buffer[send_size] = 0xDC)
+                                                                           : (send_buffer[send_size] = 0xDD);
+                send_size += 1;
             }
         }
         else
         {
-            putCharFnc(data[i]);
+            send_buffer[send_size] = data[i];
+            send_size += 1;
         }
+        if (send_size >= (UART2_DMA_BUFFER_SIZE - 2))
+        {
+            sendBufferFn(send_size, &send_buffer[0]);
+            send_size = 0;
+        }
+    }
+    if (send_size)
+    {
+        sendBufferFn(send_size, &send_buffer[0]);
     }
 }
 

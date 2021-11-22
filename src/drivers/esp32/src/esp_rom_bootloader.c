@@ -74,7 +74,7 @@ bool espblSync()
     bool sync = false;
     for (int i = 0; i < 10 && !sync; i++) // maximum 10 sync attempts
     {
-        sync = espblExchange(&receiver_pckt, &sender_pckt, uart2Putchar, uart2GetDataWithTimeout, 100);
+        sync = espblExchange(&receiver_pckt, &sender_pckt, uart2SendDataDmaBlocking, uart2GetDataWithTimeout, 100);
     }
 
     // ESP32 responds multiple times upon succesful SYNC. Wait until all responses are received, so they can be cleared before next transmission.
@@ -96,7 +96,7 @@ bool spiAttach()
     sender_pckt.data[6] = 0x00;
     sender_pckt.data[7] = 0x00;
 
-    return espblExchange(&receiver_pckt, &sender_pckt, uart2Putchar, uart2GetDataWithTimeout, 100);
+    return espblExchange(&receiver_pckt, &sender_pckt, uart2SendDataDmaBlocking, uart2GetDataWithTimeout, 100);
 }
 
 bool espblFlashBegin(uint32_t number_of_data_packets, uint32_t firmware_size, uint32_t flash_offset)
@@ -122,7 +122,7 @@ bool espblFlashBegin(uint32_t number_of_data_packets, uint32_t firmware_size, ui
     sender_pckt.data[14] = (uint8_t)((flash_offset >> 16) & 0x000000FF);
     sender_pckt.data[15] = (uint8_t)((flash_offset >> 24) & 0x000000FF);
 
-    return espblExchange(&receiver_pckt, &sender_pckt, uart2Putchar, uart2GetDataWithTimeout, 10000);
+    return espblExchange(&receiver_pckt, &sender_pckt, uart2SendDataDmaBlocking, uart2GetDataWithTimeout, 10000);
 }
 
 bool espblFlashData(uint8_t *esp_fw, uint32_t flash_data_size, uint32_t sequence_number)
@@ -155,7 +155,7 @@ bool espblFlashData(uint8_t *esp_fw, uint32_t flash_data_size, uint32_t sequence
         // pad the data with 0xFF
         memset(&sender_pckt.data[16 + flash_data_size], 0xFF, ESP_MTU - flash_data_size);
     }
-    return espblExchange(&receiver_pckt, &sender_pckt, uart2Putchar, uart2GetDataWithTimeout, 100);
+    return espblExchange(&receiver_pckt, &sender_pckt, uart2SendDataDmaBlocking, uart2GetDataWithTimeout, 100);
 }
 
 
