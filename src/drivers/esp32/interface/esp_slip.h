@@ -69,7 +69,7 @@ typedef struct
     uint8_t command;
     uint16_t data_size;
     uint32_t value; // only for READ_REG command
-    uint8_t data[ESP_MTU + 16];
+    uint8_t data[256];
     uint8_t status;
     uint8_t error;
 } __attribute__((packed)) esp_uart_receive_packet;
