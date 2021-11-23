@@ -19,8 +19,8 @@ static int mockGetCharDirtCounter = 0;
 static bool mockGetCharHasReceivedSend = false;
 
 // Helpers
-static void setupSenderHeader(esp_uart_send_packet *sender_pckt, const uint8_t command);
-static void setupEmptyReceivePacket(esp_uart_receive_packet *receiver_pckt, const uint8_t command);
+static void setupSenderHeader(esp_slip_send_packet *sender_pckt, const uint8_t command);
+static void setupEmptyReceivePacket(esp_slip_receive_packet *receiver_pckt, const uint8_t command);
 
 void setUp(void)
 {
@@ -38,19 +38,19 @@ void testFullSentPacket()
   // Fixture
   const uint8_t command = 0x17;
 
-  esp_uart_send_packet sender_pckt;
+  esp_slip_send_packet sender_pckt;
   sender_pckt.command = command;
-  sender_pckt.data_size = 0x03;
+  sender_pckt.dataSize = 0x03;
   uint8_t send_buffer[14];
   send_buffer[9] = 6;
   send_buffer[10] = 7;
   send_buffer[11] = 8;
 
-  esp_uart_receive_packet receiver_pckt;
+  esp_slip_receive_packet receiver_pckt;
   setupEmptyReceivePacket(&receiver_pckt, command);
 
   // Test
-  espblExchange(&send_buffer, &receiver_pckt, &sender_pckt, mockPutChar, mockGetChar, 100);
+  espSlipExchange(&send_buffer, &receiver_pckt, &sender_pckt, mockPutChar, mockGetChar, 100);
 
   // Assert
   TEST_ASSERT_EQUAL_HEX8(0xC0, mockPutCharBuf[0]);    // start byte
@@ -69,20 +69,20 @@ void testEscapedSendData()
   // Fixture
   const uint8_t command = 0x17;
 
-  esp_uart_send_packet sender_pckt;
+  esp_slip_send_packet sender_pckt;
   sender_pckt.command = command;
-  sender_pckt.data_size = 0x04;
+  sender_pckt.dataSize = 0x04;
   uint8_t send_buffer[14];
   send_buffer[9] = 6;
   send_buffer[10] = 0xC0;
   send_buffer[11] = 0xDB;
   send_buffer[12] = 7;
 
-  esp_uart_receive_packet receiver_pckt;
+  esp_slip_receive_packet receiver_pckt;
   setupEmptyReceivePacket(&receiver_pckt, command);
 
   // Test
-  espblExchange(&send_buffer, &receiver_pckt, &sender_pckt, mockPutChar, mockGetChar, 100);
+  espSlipExchange(&send_buffer, &receiver_pckt, &sender_pckt, mockPutChar, mockGetChar, 100);
 
   // Assert
   TEST_ASSERT_EQUAL_HEX8(0xC0, mockPutCharBuf[0]); // start byte
@@ -101,11 +101,11 @@ void testExtractCorrectReceivePcktCommands()
   // Fixture
   const uint8_t command = 0x17;
 
-  esp_uart_send_packet sender_pckt;
+  esp_slip_send_packet sender_pckt;
   setupSenderHeader(&sender_pckt, command);
   uint8_t send_buffer[14];
 
-  esp_uart_receive_packet receiver_pckt;
+  esp_slip_receive_packet receiver_pckt;
 
   mockGetCharBuf[0] = 0xC0;    // start byte
   mockGetCharBuf[1] = 0x01;    // direction
@@ -119,7 +119,7 @@ void testExtractCorrectReceivePcktCommands()
   mockGetCharBuf[13] = 0xC0; // end byte
 
   // Test
-  bool actual = espblExchange(&send_buffer, &receiver_pckt, &sender_pckt, mockPutChar, mockGetChar, 100);
+  bool actual = espSlipExchange(&send_buffer, &receiver_pckt, &sender_pckt, mockPutChar, mockGetChar, 100);
 
   // Assert
   TEST_ASSERT_EQUAL_INT8(0x17, receiver_pckt.command);
@@ -131,12 +131,12 @@ void testReceivedData()
   // Fixture
   const uint8_t command = 0x17;
 
-  esp_uart_send_packet sender_pckt;
+  esp_slip_send_packet sender_pckt;
   setupSenderHeader(&sender_pckt, command);
 
   uint8_t send_buffer[14];
 
-  esp_uart_receive_packet receiver_pckt;
+  esp_slip_receive_packet receiver_pckt;
 
   mockGetCharBuf[0] = 0xC0;    // start byte
   mockGetCharBuf[1] = 0x01;    // direction
@@ -155,7 +155,7 @@ void testReceivedData()
   mockGetCharBuf[18] = 0xC0; // end byte
 
   // Test
-  espblExchange(&send_buffer, &receiver_pckt, &sender_pckt, mockPutChar, mockGetChar, 100);
+  espSlipExchange(&send_buffer, &receiver_pckt, &sender_pckt, mockPutChar, mockGetChar, 100);
 
   // Assert
   TEST_ASSERT_EQUAL_HEX8(0x50, receiver_pckt.data[0]);
@@ -170,12 +170,12 @@ void testEscapedReceivedData()
   // Fixture
   const uint8_t command = 0x17;
 
-  esp_uart_send_packet sender_pckt;
+  esp_slip_send_packet sender_pckt;
   setupSenderHeader(&sender_pckt, command);
 
   uint8_t send_buffer[14];
 
-  esp_uart_receive_packet receiver_pckt;
+  esp_slip_receive_packet receiver_pckt;
   mockGetCharBuf[0] = 0xC0;    // start byte
   mockGetCharBuf[1] = 0x01;    // direction
   mockGetCharBuf[2] = command; // command
@@ -193,7 +193,7 @@ void testEscapedReceivedData()
   mockGetCharBuf[18] = 0xC0; // end byte
 
   // Test
-  espblExchange(&send_buffer, &receiver_pckt, &sender_pckt, mockPutChar, mockGetChar, 100);
+  espSlipExchange(&send_buffer, &receiver_pckt, &sender_pckt, mockPutChar, mockGetChar, 100);
 
   // Assert
   TEST_ASSERT_EQUAL_HEX8(0xC0, receiver_pckt.data[0]);
@@ -206,12 +206,12 @@ void testWrongCommandRaisesError()
   // Fixture
   const uint8_t command = 0x17;
 
-  esp_uart_send_packet sender_pckt;
+  esp_slip_send_packet sender_pckt;
   setupSenderHeader(&sender_pckt, command);
 
   uint8_t send_buffer[14];
 
-  esp_uart_receive_packet receiver_pckt;
+  esp_slip_receive_packet receiver_pckt;
 
   mockGetCharBuf[0] = 0xC0;  // start byte
   mockGetCharBuf[1] = 0x01;  // direction
@@ -225,7 +225,7 @@ void testWrongCommandRaisesError()
   mockGetCharBuf[18] = 0xC0; // end byte
 
   // Test
-  bool actual = espblExchange(&send_buffer, &receiver_pckt, &sender_pckt, mockPutChar, mockGetChar, 100);
+  bool actual = espSlipExchange(&send_buffer, &receiver_pckt, &sender_pckt, mockPutChar, mockGetChar, 100);
 
   // Assert
   TEST_ASSERT_FALSE(actual);
@@ -236,12 +236,12 @@ void testThatWeIgnoreLeadingGarbage()
   // Fixture
   const uint8_t command = 0x17;
 
-  esp_uart_send_packet sender_pckt;
+  esp_slip_send_packet sender_pckt;
   setupSenderHeader(&sender_pckt, command);
 
   uint8_t send_buffer[14];
 
-  esp_uart_receive_packet receiver_pckt;
+  esp_slip_receive_packet receiver_pckt;
   mockGetCharBuf[0] = 0x23;    // garbage
   mockGetCharBuf[1] = 0x34;    // garbage
   mockGetCharBuf[2] = 0x45;    // garbage
@@ -262,7 +262,7 @@ void testThatWeIgnoreLeadingGarbage()
   mockGetCharBuf[21] = 0xC0; // end byte
 
   // Test
-  espblExchange(&send_buffer, &receiver_pckt, &sender_pckt, mockPutChar, mockGetChar, 100);
+  espSlipExchange(&send_buffer, &receiver_pckt, &sender_pckt, mockPutChar, mockGetChar, 100);
 
   // Assert
   TEST_ASSERT_EQUAL_HEX8(0x50, receiver_pckt.data[0]);
@@ -277,12 +277,12 @@ void testThatWeDetectMissingEndMarker()
   // Fixture
   const uint8_t command = 0x17;
 
-  esp_uart_send_packet sender_pckt;
+  esp_slip_send_packet sender_pckt;
   setupSenderHeader(&sender_pckt, command);
 
   uint8_t send_buffer[14];
 
-  esp_uart_receive_packet receiver_pckt;
+  esp_slip_receive_packet receiver_pckt;
   mockGetCharBuf[0] = 0xC0;    // start byte
   mockGetCharBuf[1] = 0x01;    // direction
   mockGetCharBuf[2] = command; // command
@@ -300,7 +300,7 @@ void testThatWeDetectMissingEndMarker()
   mockGetCharBuf[18] = 0x00; // Missing end marker
 
   // Test
-  bool actual = espblExchange(&send_buffer, &receiver_pckt, &sender_pckt, mockPutChar, mockGetChar, 100);
+  bool actual = espSlipExchange(&send_buffer, &receiver_pckt, &sender_pckt, mockPutChar, mockGetChar, 100);
 
   // Assert
   TEST_ASSERT_FALSE(actual);
@@ -311,21 +311,21 @@ void testThatTheBufferIsClearedBeforeWritingSomething()
   // Fixture
   const uint8_t command = 0x17;
 
-  esp_uart_send_packet sender_pckt;
+  esp_slip_send_packet sender_pckt;
   sender_pckt.command = command;
-  sender_pckt.data_size = 0x03;
+  sender_pckt.dataSize = 0x03;
 
   uint8_t send_buffer[14];
   send_buffer[9] = 6;
   send_buffer[10] = 7;
   send_buffer[11] = 8;
 
-  esp_uart_receive_packet receiver_pckt;
+  esp_slip_receive_packet receiver_pckt;
   setupEmptyReceivePacket(&receiver_pckt, command);
   mockGetCharDirtCounter = 10;
 
   // Test
-  espblExchange(&send_buffer, &receiver_pckt, &sender_pckt, mockPutChar, mockGetChar, 100);
+  espSlipExchange(&send_buffer, &receiver_pckt, &sender_pckt, mockPutChar, mockGetChar, 100);
 
   // Assert
   TEST_ASSERT_EQUAL_INT32(0, mockGetCharDirtCounter);
@@ -363,13 +363,13 @@ static bool mockGetChar(uint8_t *c, const uint32_t timeoutTicks)
   }
 }
 
-static void setupSenderHeader(esp_uart_send_packet *sender_pckt, const uint8_t command)
+static void setupSenderHeader(esp_slip_send_packet *sender_pckt, const uint8_t command)
 {
   sender_pckt->command = command;
-  sender_pckt->data_size = 0x04;
+  sender_pckt->dataSize = 0x04;
 }
 
-static void setupEmptyReceivePacket(esp_uart_receive_packet *receiver_pckt, const uint8_t command)
+static void setupEmptyReceivePacket(esp_slip_receive_packet *receiver_pckt, const uint8_t command)
 {
   mockGetCharBuf[0] = 0xC0;    // start byte
   mockGetCharBuf[1] = 0x01;    // direction

@@ -40,10 +40,10 @@
 #include "uart2.h"
 #include <math.h>
 
-static esp_uart_send_packet sender_pckt;
-static esp_uart_receive_packet receiver_pckt;
+static esp_slip_send_packet senderPacket;
+static esp_slip_receive_packet receiverPacket;
 
-void espblInit()
+void espRomBootloaderInit()
 {
   pinMode(DECK_GPIO_IO1, OUTPUT);
   digitalWrite(DECK_GPIO_IO1, LOW);
@@ -57,23 +57,23 @@ void espblInit()
   pinMode(DECK_GPIO_IO1, INPUT_PULLUP);
 }
 
-bool espblSync(uint8_t *send_buffer)
+bool espRomBootloaderSync(uint8_t *sendBuffer)
 {
-  sender_pckt.command = SYNC;
-  sender_pckt.data_size = 0x24;
-  send_buffer[9 + 0] = 0x07;
-  send_buffer[9 + 1] = 0x07;
-  send_buffer[9 + 2] = 0x12;
-  send_buffer[9 + 3] = 0x20;
+  senderPacket.command = SYNC;
+  senderPacket.dataSize = 0x24;
+  sendBuffer[9 + 0] = 0x07;
+  sendBuffer[9 + 1] = 0x07;
+  sendBuffer[9 + 2] = 0x12;
+  sendBuffer[9 + 3] = 0x20;
   for (int i = 0; i < 32; i++)
   {
-    send_buffer[9 + 4 + i] = 0x55;
+    sendBuffer[9 + 4 + i] = 0x55;
   }
 
   bool sync = false;
   for (int i = 0; i < 10 && !sync; i++) // maximum 10 sync attempts
   {
-    sync = espblExchange(send_buffer, &receiver_pckt, &sender_pckt, uart2SendDataDmaBlocking, uart2GetDataWithTimeout, 100);
+    sync = espSlipExchange(sendBuffer, &receiverPacket, &senderPacket, uart2SendDataDmaBlocking, uart2GetDataWithTimeout, 100);
   }
 
   // ESP32 responds multiple times upon succesful SYNC. Wait until all responses are received, so they can be cleared before next transmission.
@@ -82,77 +82,77 @@ bool espblSync(uint8_t *send_buffer)
   return sync;
 }
 
-bool spiAttach(uint8_t *send_buffer)
+bool espRomBootloaderSpiAttach(uint8_t *sendBuffer)
 {
-  sender_pckt.command = SPI_ATTACH;
-  sender_pckt.data_size = 0x4;
-  send_buffer[9 + 0] = 0x00;
-  send_buffer[9 + 1] = 0x00;
-  send_buffer[9 + 2] = 0x00;
-  send_buffer[9 + 3] = 0x00;
-  send_buffer[9 + 4] = 0x00;
-  send_buffer[9 + 5] = 0x00;
-  send_buffer[9 + 6] = 0x00;
-  send_buffer[9 + 7] = 0x00;
+  senderPacket.command = SPI_ATTACH;
+  senderPacket.dataSize = 0x4;
+  sendBuffer[9 + 0] = 0x00;
+  sendBuffer[9 + 1] = 0x00;
+  sendBuffer[9 + 2] = 0x00;
+  sendBuffer[9 + 3] = 0x00;
+  sendBuffer[9 + 4] = 0x00;
+  sendBuffer[9 + 5] = 0x00;
+  sendBuffer[9 + 6] = 0x00;
+  sendBuffer[9 + 7] = 0x00;
 
-  return espblExchange(send_buffer, &receiver_pckt, &sender_pckt, uart2SendDataDmaBlocking, uart2GetDataWithTimeout, 100);
+  return espSlipExchange(sendBuffer, &receiverPacket, &senderPacket, uart2SendDataDmaBlocking, uart2GetDataWithTimeout, 100);
 }
 
-bool espblFlashBegin(uint8_t *send_buffer, uint32_t number_of_data_packets, uint32_t firmware_size, uint32_t flash_offset)
+bool espRomBootloaderFlashBegin(uint8_t *sendBuffer, uint32_t numberOfDataPackets, uint32_t firmwareSize, uint32_t flashOffset)
 {
-  sender_pckt.command = FLASH_BEGIN;
-  sender_pckt.data_size = 0x10;
-  send_buffer[9 + 0] = (uint8_t)((firmware_size >> 0) & 0x000000FF);
-  send_buffer[9 + 1] = (uint8_t)((firmware_size >> 8) & 0x000000FF);
-  send_buffer[9 + 2] = (uint8_t)((firmware_size >> 16) & 0x000000FF);
-  send_buffer[9 + 3] = (uint8_t)((firmware_size >> 24) & 0x000000FF);
+  senderPacket.command = FLASH_BEGIN;
+  senderPacket.dataSize = 0x10;
+  sendBuffer[9 + 0] = (uint8_t)((firmwareSize >> 0) & 0x000000FF);
+  sendBuffer[9 + 1] = (uint8_t)((firmwareSize >> 8) & 0x000000FF);
+  sendBuffer[9 + 2] = (uint8_t)((firmwareSize >> 16) & 0x000000FF);
+  sendBuffer[9 + 3] = (uint8_t)((firmwareSize >> 24) & 0x000000FF);
 
-  send_buffer[9 + 4] = (uint8_t)((number_of_data_packets >> 0) & 0x000000FF);
-  send_buffer[9 + 5] = (uint8_t)((number_of_data_packets >> 8) & 0x000000FF);
-  send_buffer[9 + 6] = (uint8_t)((number_of_data_packets >> 16) & 0x000000FF);
-  send_buffer[9 + 7] = (uint8_t)((number_of_data_packets >> 24) & 0x000000FF);
+  sendBuffer[9 + 4] = (uint8_t)((numberOfDataPackets >> 0) & 0x000000FF);
+  sendBuffer[9 + 5] = (uint8_t)((numberOfDataPackets >> 8) & 0x000000FF);
+  sendBuffer[9 + 6] = (uint8_t)((numberOfDataPackets >> 16) & 0x000000FF);
+  sendBuffer[9 + 7] = (uint8_t)((numberOfDataPackets >> 24) & 0x000000FF);
 
-  send_buffer[9 + 8] = (uint8_t)((ESP_MTU >> 0) & 0x000000FF);
-  send_buffer[9 + 9] = (uint8_t)((ESP_MTU >> 8) & 0x000000FF);
-  send_buffer[9 + 10] = (uint8_t)((ESP_MTU >> 16) & 0x000000FF);
-  send_buffer[9 + 11] = (uint8_t)((ESP_MTU >> 24) & 0x000000FF);
-  send_buffer[9 + 12] = (uint8_t)((flash_offset >> 0) & 0x000000FF);
-  send_buffer[9 + 13] = (uint8_t)((flash_offset >> 8) & 0x000000FF);
-  send_buffer[9 + 14] = (uint8_t)((flash_offset >> 16) & 0x000000FF);
-  send_buffer[9 + 15] = (uint8_t)((flash_offset >> 24) & 0x000000FF);
+  sendBuffer[9 + 8] = (uint8_t)((ESP_MTU >> 0) & 0x000000FF);
+  sendBuffer[9 + 9] = (uint8_t)((ESP_MTU >> 8) & 0x000000FF);
+  sendBuffer[9 + 10] = (uint8_t)((ESP_MTU >> 16) & 0x000000FF);
+  sendBuffer[9 + 11] = (uint8_t)((ESP_MTU >> 24) & 0x000000FF);
+  sendBuffer[9 + 12] = (uint8_t)((flashOffset >> 0) & 0x000000FF);
+  sendBuffer[9 + 13] = (uint8_t)((flashOffset >> 8) & 0x000000FF);
+  sendBuffer[9 + 14] = (uint8_t)((flashOffset >> 16) & 0x000000FF);
+  sendBuffer[9 + 15] = (uint8_t)((flashOffset >> 24) & 0x000000FF);
 
-  return espblExchange(send_buffer, &receiver_pckt, &sender_pckt, uart2SendDataDmaBlocking, uart2GetDataWithTimeout, 10000);
+  return espSlipExchange(sendBuffer, &receiverPacket, &senderPacket, uart2SendDataDmaBlocking, uart2GetDataWithTimeout, 10000);
 }
 
-bool espblFlashData(uint8_t *send_buffer, uint32_t flash_data_size, uint32_t sequence_number)
+bool espRomBootloaderFlashData(uint8_t *sendBuffer, uint32_t flashDataSize, uint32_t sequenceNumber)
 {
-  sender_pckt.command = FLASH_DATA;
-  sender_pckt.data_size = ESP_MTU + 16; // set data size to the data size including the additional header
+  senderPacket.command = FLASH_DATA;
+  senderPacket.dataSize = ESP_MTU + 16; // set data size to the data size including the additional header
 
-  send_buffer[9 + 0] = (uint8_t)((ESP_MTU >> 0) & 0x000000FF);
-  send_buffer[9 + 1] = (uint8_t)((ESP_MTU >> 8) & 0x000000FF);
-  send_buffer[9 + 2] = (uint8_t)((ESP_MTU >> 16) & 0x000000FF);
-  send_buffer[9 + 3] = (uint8_t)((ESP_MTU >> 24) & 0x000000FF);
+  sendBuffer[9 + 0] = (uint8_t)((ESP_MTU >> 0) & 0x000000FF);
+  sendBuffer[9 + 1] = (uint8_t)((ESP_MTU >> 8) & 0x000000FF);
+  sendBuffer[9 + 2] = (uint8_t)((ESP_MTU >> 16) & 0x000000FF);
+  sendBuffer[9 + 3] = (uint8_t)((ESP_MTU >> 24) & 0x000000FF);
 
-  send_buffer[9 + 4] = (uint8_t)((sequence_number >> 0) & 0x000000FF);
-  send_buffer[9 + 5] = (uint8_t)((sequence_number >> 8) & 0x000000FF);
-  send_buffer[9 + 6] = (uint8_t)((sequence_number >> 16) & 0x000000FF);
-  send_buffer[9 + 7] = (uint8_t)((sequence_number >> 24) & 0x000000FF);
+  sendBuffer[9 + 4] = (uint8_t)((sequenceNumber >> 0) & 0x000000FF);
+  sendBuffer[9 + 5] = (uint8_t)((sequenceNumber >> 8) & 0x000000FF);
+  sendBuffer[9 + 6] = (uint8_t)((sequenceNumber >> 16) & 0x000000FF);
+  sendBuffer[9 + 7] = (uint8_t)((sequenceNumber >> 24) & 0x000000FF);
 
-  send_buffer[9 + 8] = 0x00;
-  send_buffer[9 + 9] = 0x00;
-  send_buffer[9 + 10] = 0x00;
-  send_buffer[9 + 11] = 0x00;
-  send_buffer[9 + 12] = 0x00;
-  send_buffer[9 + 13] = 0x00;
-  send_buffer[9 + 14] = 0x00;
-  send_buffer[9 + 15] = 0x00;
+  sendBuffer[9 + 8] = 0x00;
+  sendBuffer[9 + 9] = 0x00;
+  sendBuffer[9 + 10] = 0x00;
+  sendBuffer[9 + 11] = 0x00;
+  sendBuffer[9 + 12] = 0x00;
+  sendBuffer[9 + 13] = 0x00;
+  sendBuffer[9 + 14] = 0x00;
+  sendBuffer[9 + 15] = 0x00;
 
-  if (flash_data_size < ESP_MTU)
+  if (flashDataSize < ESP_MTU)
   {
     // pad the data with 0xFF
-    memset(&send_buffer[9 + 16 + flash_data_size], 0xFF, ESP_MTU - flash_data_size);
+    memset(&sendBuffer[9 + 16 + flashDataSize], 0xFF, ESP_MTU - flashDataSize);
   }
 
-  return espblExchange(send_buffer, &receiver_pckt, &sender_pckt, uart2SendDataDmaBlocking, uart2GetDataWithTimeout, 100);
+  return espSlipExchange(sendBuffer, &receiverPacket, &senderPacket, uart2SendDataDmaBlocking, uart2GetDataWithTimeout, 100);
 }

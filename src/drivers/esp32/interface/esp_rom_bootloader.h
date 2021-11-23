@@ -37,14 +37,12 @@
 #define ESP_PARTITION_ADDRESS 0x8000
 #define ESP_FW_ADDRESS 0x10000
 
-bool espblSync(uint8_t *send_buffer);
+bool espRomBootloaderSync(uint8_t *sendBuffer);
 
-bool espblFlashBegin(uint8_t *send_buffer, uint32_t number_of_data_packets, uint32_t firmware_size, uint32_t flash_offset);
+bool espRomBootloaderFlashBegin(uint8_t *sendBuffer, uint32_t numberOfDataPackets, uint32_t firmwareSize, uint32_t flashOffset);
 
-bool espblFlashData(uint8_t *send_buffer, uint32_t flash_data_size, uint32_t sequence_number);
+bool espRomBootloaderFlashData(uint8_t *sendBuffer, uint32_t flashDataSize, uint32_t sequenceNumber);
 
-bool espblFlashWrite(uint8_t *esp_fw, uint32_t esp_fw_size, uint32_t sequence_number);
+bool espRomBootloaderSpiAttach(uint8_t *sendBuffer);
 
-bool spiAttach(uint8_t *send_buffer);
-
-void espblInit();
+void espRomBootloaderInit();

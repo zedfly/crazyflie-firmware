@@ -45,7 +45,7 @@
 #define CHANGE_BAUDRATE 0x0f
 #define SPI_ATTACH 0x0d
 
-typedef void (*coms_putchar_t)(uint32_t size, uint8_t *data);
+typedef void (*coms_sendbuffer_t)(uint32_t size, uint8_t *data);
 typedef bool (*coms_getDataWithTimeout_t)(uint8_t *c, const uint32_t timeoutTicks);
 
 typedef enum
@@ -59,19 +59,19 @@ typedef struct
 {
   uint8_t direction;
   uint8_t command;
-  uint16_t data_size;
+  uint16_t dataSize;
   uint32_t checksum;
-} __attribute__((packed)) esp_uart_send_packet;
+} __attribute__((packed)) esp_slip_send_packet;
 
 typedef struct
 {
   uint8_t direction;
   uint8_t command;
-  uint16_t data_size;
+  uint16_t dataSize;
   uint32_t value; // only for READ_REG command
   uint8_t data[256];
   uint8_t status;
   uint8_t error;
-} __attribute__((packed)) esp_uart_receive_packet;
+} __attribute__((packed)) esp_slip_receive_packet;
 
-bool espblExchange(uint8_t *send_buffer, esp_uart_receive_packet *receiver_pckt, esp_uart_send_packet *sender_pckt, coms_putchar_t putchar, coms_getDataWithTimeout_t getDataWithTimeout, uint32_t timeout_ticks);
+bool espSlipExchange(uint8_t *sendBuffer, esp_slip_receive_packet *receiverPacket, esp_slip_send_packet *senderPacket, coms_sendbuffer_t sendBufferFunction, coms_getDataWithTimeout_t getDataWithTimeout, uint32_t timeoutTicks);
