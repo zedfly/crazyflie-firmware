@@ -31,15 +31,14 @@
 #include <string.h>
 
 #include "FreeRTOS.h"
-#include "task.h"
-
-#include <math.h>
 #include "debug.h"
-#include "queue.h"
 #include "deck.h"
-#include "uart2.h"
 #include "esp_rom_bootloader.h"
 #include "esp_slip.h"
+#include "queue.h"
+#include "task.h"
+#include "uart2.h"
+#include <math.h>
 
 static esp_uart_send_packet sender_pckt;
 static esp_uart_receive_packet receiver_pckt;

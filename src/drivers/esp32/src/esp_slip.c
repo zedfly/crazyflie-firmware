@@ -27,6 +27,7 @@
  */
 
 #include <string.h>
+
 #include "esp_slip.h"
 #include "uart2.h"
 

@@ -4,6 +4,7 @@
 #define UART2_LINK_COMM 1
 
 #include <string.h>
+
 #include "unity.h"
 
 // Mocks

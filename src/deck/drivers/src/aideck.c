@@ -25,29 +25,27 @@
  */
 #define DEBUG_MODULE "AIDECK"
 
+#include <math.h>
 #include <stdint.h>
-#include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include "stm32fxxx.h"
+#include "FreeRTOS.h"
+#include "aideck.h"
 #include "config.h"
 #include "console.h"
-#include "uart1.h"
 #include "debug.h"
 #include "deck.h"
-#include "FreeRTOS.h"
-#include "task.h"
-#include "queue.h"
-#include <string.h>
-#include <stdlib.h>
-#include <math.h>
+#include "esp_deck_flasher.h"
 #include "log.h"
 #include "param.h"
+#include "queue.h"
+#include "stm32fxxx.h"
 #include "system.h"
+#include "task.h"
 #include "uart1.h"
 #include "uart2.h"
-#include "esp_deck_flasher.h"
-#include "aideck.h"
 
 static bool isInit = false;
 static uint8_t byte;

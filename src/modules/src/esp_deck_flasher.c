@@ -26,23 +26,21 @@
  *  
  */
 
-#include <string.h>
-#include <stdlib.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define DEBUG_MODULE "ESPFL"
 #include "debug.h"
 
+#include "FreeRTOS.h"
+#include "aideck.h"
+#include "deck.h"
 #include "deck_core.h"
 #include "esp_deck_flasher.h"
 #include "esp_rom_bootloader.h"
 #include "mem.h"
-
-#include "FreeRTOS.h"
 #include "task.h"
-
-#include "aideck.h"
-#include "deck.h"
 #include "uart2.h"
 
 static bool inBootloaderMode = true;
