@@ -50,28 +50,28 @@ typedef bool (*coms_getDataWithTimeout_t)(uint8_t *c, const uint32_t timeoutTick
 
 typedef enum
 {
-    SLIP_DECODING,
-    SLIP_SUCCESS,
-    SLIP_ERROR
+  SLIP_DECODING,
+  SLIP_SUCCESS,
+  SLIP_ERROR
 } slipDecoderStatus_t;
 
 typedef struct
 {
-    uint8_t direction;
-    uint8_t command;
-    uint16_t data_size;
-    uint32_t checksum;
+  uint8_t direction;
+  uint8_t command;
+  uint16_t data_size;
+  uint32_t checksum;
 } __attribute__((packed)) esp_uart_send_packet;
 
 typedef struct
 {
-    uint8_t direction;
-    uint8_t command;
-    uint16_t data_size;
-    uint32_t value; // only for READ_REG command
-    uint8_t data[256];
-    uint8_t status;
-    uint8_t error;
+  uint8_t direction;
+  uint8_t command;
+  uint16_t data_size;
+  uint32_t value; // only for READ_REG command
+  uint8_t data[256];
+  uint8_t status;
+  uint8_t error;
 } __attribute__((packed)) esp_uart_receive_packet;
 
 bool espblExchange(uint8_t *send_buffer, esp_uart_receive_packet *receiver_pckt, esp_uart_send_packet *sender_pckt, coms_putchar_t putchar, coms_getDataWithTimeout_t getDataWithTimeout, uint32_t timeout_ticks);

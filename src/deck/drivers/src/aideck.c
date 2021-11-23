@@ -55,88 +55,88 @@ static uint8_t byte;
 
 static void NinaTask(void *param)
 {
-    systemWaitStart();
-    vTaskDelay(M2T(3000));
-    if (espDeckFlasherCheckVersionAndBoot() == false)
+  systemWaitStart();
+  vTaskDelay(M2T(3000));
+  if (espDeckFlasherCheckVersionAndBoot() == false)
+  {
+    DEBUG_PRINT("ESP32 not booted.");
+    while (1)
     {
-        DEBUG_PRINT("ESP32 not booted.");
-        while (1)
-        {
-            vTaskDelay(portMAX_DELAY);
-        }
+      vTaskDelay(portMAX_DELAY);
     }
+  }
 #ifdef DEBUG_NINA_PRINT
-    systemWaitStart();
-    vTaskDelay(M2T(1000));
-    DEBUG_PRINT("Starting reading out NINA debugging messages:\n");
-    vTaskDelay(M2T(2000));
-    uart2Init(115200);
+  systemWaitStart();
+  vTaskDelay(M2T(1000));
+  DEBUG_PRINT("Starting reading out NINA debugging messages:\n");
+  vTaskDelay(M2T(2000));
+  uart2Init(115200);
 
-    // Pull the reset button to get a clean read out of the data
-    pinMode(DECK_GPIO_IO4, OUTPUT);
-    digitalWrite(DECK_GPIO_IO4, LOW);
-    vTaskDelay(10);
-    digitalWrite(DECK_GPIO_IO4, HIGH);
-    pinMode(DECK_GPIO_IO4, INPUT_PULLUP);
+  // Pull the reset button to get a clean read out of the data
+  pinMode(DECK_GPIO_IO4, OUTPUT);
+  digitalWrite(DECK_GPIO_IO4, LOW);
+  vTaskDelay(10);
+  digitalWrite(DECK_GPIO_IO4, HIGH);
+  pinMode(DECK_GPIO_IO4, INPUT_PULLUP);
 
-    // Read out the byte the NINA sends and immediately send it to the console.
-    uint8_t byte;
-    while (1)
+  // Read out the byte the NINA sends and immediately send it to the console.
+  uint8_t byte;
+  while (1)
+  {
+    if (uart2GetDataWithDefaultTimeout(&byte) == true)
     {
-        if (uart2GetDataWithDefaultTimeout(&byte) == true)
-        {
-            consolePutchar(byte);
-        }
+      consolePutchar(byte);
     }
+  }
 #endif
-    while (1)
-    {
-        vTaskDelay(portMAX_DELAY);
-    }
+  while (1)
+  {
+    vTaskDelay(portMAX_DELAY);
+  }
 }
 
 static void Gap8Task(void *param)
 {
-    systemWaitStart();
-    vTaskDelay(M2T(1000));
+  systemWaitStart();
+  vTaskDelay(M2T(1000));
 
-    // Pull the reset button to get a clean read out of the data
-    pinMode(DECK_GPIO_IO4, OUTPUT);
-    digitalWrite(DECK_GPIO_IO4, LOW);
-    vTaskDelay(10);
-    digitalWrite(DECK_GPIO_IO4, HIGH);
-    pinMode(DECK_GPIO_IO4, INPUT_PULLUP);
+  // Pull the reset button to get a clean read out of the data
+  pinMode(DECK_GPIO_IO4, OUTPUT);
+  digitalWrite(DECK_GPIO_IO4, LOW);
+  vTaskDelay(10);
+  digitalWrite(DECK_GPIO_IO4, HIGH);
+  pinMode(DECK_GPIO_IO4, INPUT_PULLUP);
 
-    // Read out the byte the Gap8 sends and immediately send it to the console.
-    while (1)
-    {
-        uart1GetDataWithDefaultTimeout(&byte);
-    }
+  // Read out the byte the Gap8 sends and immediately send it to the console.
+  while (1)
+  {
+    uart1GetDataWithDefaultTimeout(&byte);
+  }
 }
 
 static void aideckInit(DeckInfo *info)
 {
 
-    if (isInit)
-        return;
+  if (isInit)
+    return;
 
-    // Intialize the UART for the GAP8
-    uart1Init(115200);
-    // Initialize task for the GAP8
-    xTaskCreate(Gap8Task, AI_DECK_GAP_TASK_NAME, AI_DECK_TASK_STACKSIZE, NULL,
-                AI_DECK_TASK_PRI, NULL);
+  // Intialize the UART for the GAP8
+  uart1Init(115200);
+  // Initialize task for the GAP8
+  xTaskCreate(Gap8Task, AI_DECK_GAP_TASK_NAME, AI_DECK_TASK_STACKSIZE, NULL,
+              AI_DECK_TASK_PRI, NULL);
 
-    // Initialize task for the NINA
-    xTaskCreate(NinaTask, AI_DECK_NINA_TASK_NAME, AI_DECK_TASK_STACKSIZE, NULL,
-                AI_DECK_TASK_PRI, NULL);
+  // Initialize task for the NINA
+  xTaskCreate(NinaTask, AI_DECK_NINA_TASK_NAME, AI_DECK_TASK_STACKSIZE, NULL,
+              AI_DECK_TASK_PRI, NULL);
 
-    isInit = true;
+  isInit = true;
 }
 
 static bool aideckTest()
 {
 
-    return true;
+  return true;
 }
 
 static const DeckMemDef_t memoryDef = {
