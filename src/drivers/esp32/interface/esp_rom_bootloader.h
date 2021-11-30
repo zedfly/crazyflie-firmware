@@ -82,3 +82,14 @@ bool espRomBootloaderSpiAttach(uint8_t *sendBuffer);
 * @brief Called to reboot the ESP into bootloader mode.
 **/
 void espRomBootloaderInit();
+
+/**
+ * @brief Called to compare the desired MD5 checksum, with one calculated on the ESP.
+ * 
+ * @param sendBuffer Buffer used to construct the SPI attach packet. Can be an empty buffer.
+ * @param checksumStartAddress The address from where the checksum will be calculated
+ * @param flashedSize The size of the memory to calculate the checksum for
+ * @param expectedMd5 Expected MD5 checksum
+ * @return true if the MD5 checksum matches, false otherwise.
+ */
+bool espRomBootloaderCompareMD5(uint8_t *sendBuffer, uint32_t checksumStartAddress, uint32_t flashedSize, uint8_t *expectedMd5);

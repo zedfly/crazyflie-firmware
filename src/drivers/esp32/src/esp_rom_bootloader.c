@@ -160,3 +160,42 @@ bool espRomBootloaderFlashData(uint8_t *sendBuffer, uint32_t flashDataSize, uint
 
   return espSlipExchange(sendBuffer, &receiverPacket, &senderPacket, uart2SendDataDmaBlocking, uart2GetDataWithTimeout, 100);
 }
+
+bool espRomBootloaderCompareMD5(uint8_t *sendBuffer, uint32_t checksumStartAddress, uint32_t flashedSize, uint8_t *expectedMd5)
+{
+  senderPacket.command = SPI_FLASH_MD5;
+  senderPacket.dataSize = 0x10;
+
+  sendBuffer[1 + ESP_SLIP_OVERHEAD_LEN + 0] = (uint8_t)((checksumStartAddress >> 0) & 0x000000FF);
+  sendBuffer[1 + ESP_SLIP_OVERHEAD_LEN + 1] = (uint8_t)((checksumStartAddress >> 8) & 0x000000FF);
+  sendBuffer[1 + ESP_SLIP_OVERHEAD_LEN + 2] = (uint8_t)((checksumStartAddress >> 16) & 0x000000FF);
+  sendBuffer[1 + ESP_SLIP_OVERHEAD_LEN + 3] = (uint8_t)((checksumStartAddress >> 24) & 0x000000FF);
+
+  sendBuffer[1 + ESP_SLIP_OVERHEAD_LEN + 4] = (uint8_t)((flashedSize >> 0) & 0x000000FF);
+  sendBuffer[1 + ESP_SLIP_OVERHEAD_LEN + 5] = (uint8_t)((flashedSize >> 8) & 0x000000FF);
+  sendBuffer[1 + ESP_SLIP_OVERHEAD_LEN + 6] = (uint8_t)((flashedSize >> 16) & 0x000000FF);
+  sendBuffer[1 + ESP_SLIP_OVERHEAD_LEN + 7] = (uint8_t)((flashedSize >> 24) & 0x000000FF);
+
+  sendBuffer[1 + ESP_SLIP_OVERHEAD_LEN + 8] = 0x00;
+  sendBuffer[1 + ESP_SLIP_OVERHEAD_LEN + 9] = 0x00;
+  sendBuffer[1 + ESP_SLIP_OVERHEAD_LEN + 10] = 0x00;
+  sendBuffer[1 + ESP_SLIP_OVERHEAD_LEN + 11] = 0x00;
+  sendBuffer[1 + ESP_SLIP_OVERHEAD_LEN + 12] = 0x00;
+  sendBuffer[1 + ESP_SLIP_OVERHEAD_LEN + 13] = 0x00;
+  sendBuffer[1 + ESP_SLIP_OVERHEAD_LEN + 14] = 0x00;
+  sendBuffer[1 + ESP_SLIP_OVERHEAD_LEN + 15] = 0x00;
+  if (!espSlipExchange(sendBuffer, &receiverPacket, &senderPacket, uart2SendDataDmaBlocking, uart2GetDataWithTimeout, 100))
+  {
+    DEBUG_PRINT("Failed to receive MD5 hash");
+    return false;
+  }
+  for (int i = 0; i < 0x20; i++)
+  {
+    if (receiverPacket.data[i] != expectedMd5[i])
+    {
+      DEBUG_PRINT("MD5 hash mismatch\n");
+      return false;
+    }
+  }
+  return true;
+}

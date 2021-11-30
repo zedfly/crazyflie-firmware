@@ -43,17 +43,29 @@
 static bool inBootloaderMode = true;
 static bool hasStarted = false;
 
-bool espDeckFlasherCheckVersionAndBoot()
-{
-  hasStarted = true;
-  return true;
-}
-
 static uint32_t sequenceNumber;
 static uint32_t numberOfDataPackets;
 static uint8_t sendBuffer[ESP_MTU + ESP_SLIP_OVERHEAD_LEN + ESP_SLIP_ADDITIONAL_DATA_OVERHEAD_LEN + 2]; // + 2 to account for start and stop bytes 0xC0
 static uint8_t overshoot;
 static uint32_t sendBufferIndex;
+
+uint8_t ESP_BITSTREAM_MD5[32] = {52, 48, 57, 100, 54, 99, 49, 57, 52, 53, 49, 100, 100, 51, 57, 100, 52, 97, 57, 52, 101, 52, 50, 100, 50, 102, 102, 50, 99, 56, 51, 52};
+
+bool espDeckFlasherCheckVersionAndBoot()
+{
+  uart2Init(115200);
+  espRomBootloaderInit();
+  espRomBootloaderSpiAttach(&sendBuffer[0]);
+  if (!espRomBootloaderCompareMD5(&sendBuffer[0], ESP_FW_ADDRESS, ESP_BITSTREAM_SIZE, ESP_BITSTREAM_MD5))
+  {
+    DEBUG_PRINT("Failed to receive deck bitstream or deck bitstream does not match the required bitstream.\n");
+    DEBUG_PRINT("We require ESP bitstream of size %d and MD5 hash starting with %x.\n", ESP_BITSTREAM_SIZE, ESP_BITSTREAM_MD5[0]);
+    DEBUG_PRINT("Leaving the deck in bootloader mode ...\n");
+    return false;
+  }
+  hasStarted = true;
+  return true;
+}
 
 bool espDeckFlasherWrite(const uint32_t memAddr, const uint8_t writeLen, const uint8_t *buffer)
 {
