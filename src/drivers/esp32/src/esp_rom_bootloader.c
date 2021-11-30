@@ -34,6 +34,7 @@
 #include "debug.h"
 #include "deck.h"
 #include "esp_rom_bootloader.h"
+#include "md5_hash.h"
 #include "task.h"
 #include "uart2.h"
 
@@ -45,6 +46,41 @@
 
 static espSlipSendPacket_t senderPacket;
 static espSlipReceivePacket_t receiverPacket;
+
+static struct MD5Context s_md5_context;
+static uint32_t s_start_address;
+static uint32_t s_image_size;
+
+static bool compareFlashedAndCalculatedMd5Checksum(uint8_t *sendBuffer, uint32_t checksumStartAddress, uint32_t flashedSize);
+
+static void init_md5(uint32_t address, uint32_t size)
+{
+  s_start_address = address;
+  s_image_size = size;
+  MD5Init(&s_md5_context);
+}
+
+static void md5_update(uint8_t *data, uint32_t size)
+{
+  MD5Update(&s_md5_context, data, size);
+}
+
+static void md5_final(uint8_t digets[16])
+{
+  MD5Final(digets, &s_md5_context);
+}
+
+static void hexify(uint8_t raw_md5[16], uint8_t hex_md5_out[32])
+{
+  static uint8_t dec_to_hex[] = {
+      '0', '1', '2', '3', '4', '5', '6', '7',
+      '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
+  for (int i = 0; i < 16; i++)
+  {
+    *hex_md5_out++ = dec_to_hex[raw_md5[i] >> 4];
+    *hex_md5_out++ = dec_to_hex[raw_md5[i] & 0xF];
+  }
+}
 
 void espRomBootloaderInit()
 {
@@ -127,6 +163,8 @@ bool espRomBootloaderFlashBegin(uint8_t *sendBuffer, uint32_t numberOfDataPacket
   sendBuffer[1 + ESP_SLIP_OVERHEAD_LEN + 14] = (uint8_t)((flashOffset >> 16) & 0x000000FF);
   sendBuffer[1 + ESP_SLIP_OVERHEAD_LEN + 15] = (uint8_t)((flashOffset >> 24) & 0x000000FF);
 
+  init_md5(flashOffset, firmwareSize);
+
   return espSlipExchange(sendBuffer, &receiverPacket, &senderPacket, uart2SendDataDmaBlocking, uart2GetDataWithTimeout, 10000);
 }
 
@@ -157,6 +195,8 @@ bool espRomBootloaderFlashData(uint8_t *sendBuffer, uint32_t flashDataSize, uint
     // pad the data with 0xFF
     memset(&sendBuffer[1 + ESP_SLIP_OVERHEAD_LEN + ESP_SLIP_ADDITIONAL_DATA_OVERHEAD_LEN + flashDataSize], 0xFF, ESP_MTU - flashDataSize);
   }
+
+  md5_update(&sendBuffer[1 + ESP_SLIP_OVERHEAD_LEN + sequenceNumber * ESP_MTU], flashDataSize);
 
   return espSlipExchange(sendBuffer, &receiverPacket, &senderPacket, uart2SendDataDmaBlocking, uart2GetDataWithTimeout, 100);
 }
@@ -196,6 +236,21 @@ bool espRomBootloaderCompareMD5(uint8_t *sendBuffer, uint32_t checksumStartAddre
       DEBUG_PRINT("MD5 hash mismatch\n");
       return false;
     }
+  }
+  return true;
+}
+
+static bool compareFlashedAndCalculatedMd5Checksum(uint8_t *sendBuffer, uint32_t checksumStartAddress, uint32_t flashedSize)
+{
+  uint8_t raw_md5[16];
+  uint8_t hex_md5[32 + 1];
+
+  md5_final(raw_md5);
+  hexify(raw_md5, hex_md5);
+
+  if (!espRomBootloaderCompareMD5(sendBuffer, checksumStartAddress, flashedSize, hex_md5))
+  {
+    return false;
   }
   return true;
 }
