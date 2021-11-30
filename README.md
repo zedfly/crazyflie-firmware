@@ -1,3 +1,11 @@
+Branch with initial implementation of MD5 hash calculation on ESP32. The added features are not complete and may not function.
+
+The added features are split into two commits;
+1. Function to request ESP32 to calculate MD5 hash for a certain memory region, comparison with a hard-coded MD5 hash.
+2. Functionality to calculate MD5 hash of the to-be flashed ESP32 firmware on the STM32 side (during flashing of ESP32 from STM32), comparison with requested ESP32 MD5 hash.
+
+----
+
 # Crazyflie Firmware  [![CI](https://github.com/bitcraze/crazyflie-firmware/workflows/CI/badge.svg)](https://github.com/bitcraze/crazyflie-firmware/actions?query=workflow%3ACI)
 
 This project contains the source code for the firmware used in the Crazyflie range of platforms, including the Crazyflie 2.X and the Roadrunner.
