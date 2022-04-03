@@ -156,8 +156,7 @@ bool systemTest() {
   pass &= buzzerTest();
   pass &= communicationManagerTest();
   pass &= p2pTaskTest();
-  pass &= initColorGradient();
-
+  pass &= testColorGradient();
   return pass;
 }
 
