@@ -139,7 +139,6 @@ void systemInit(void) {
   p2pTaskInit();
   initColorGradient();
 
-
 #ifdef APP_ENABLED
   appInit();
 #endif
