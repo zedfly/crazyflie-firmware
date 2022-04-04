@@ -28,4 +28,11 @@
 #include "kalman_core.h"
 
 // Measurements of flow (dnx, dny)
-void kalmanCoreUpdateWithFlow(kalmanCoreData_t* this, const flowMeasurement_t *flow, const Axis3f *gyro);
+void kalmanCoreUpdateWithFlow(kalmanCoreData_t *this,
+                              const flowMeasurement_t *flow,
+                              const Axis3f *gyro);
+
+// Kalman update with optical flow measurements using F (floor height estimate)
+void kalmanCoreUpdateWithFlowUsingF(kalmanCoreData_t *this,
+                                    const flowMeasurement_t *flow,
+                                    const Axis3f *gyro);
