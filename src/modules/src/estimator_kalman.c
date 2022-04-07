@@ -591,6 +591,12 @@ LOG_ADD(LOG_FLOAT, q3, &coreData.q[3])
 /**
  * @brief Statistics rate of update step
  */
+/**
+ * @brief Nonzero to use F (floor height) and R (roof height) in the estimation
+ * for a better Z estimate
+ */
+LOG_ADD(LOG_UINT8, useF, &useF)
+
 STATS_CNT_RATE_LOG_ADD(rtUpdate, &updateCounter)
 /**
  * @brief Statistics rate of prediction step
