@@ -370,11 +370,7 @@ static bool updateQueuedMeasurements(const uint32_t tick) {
         doneUpdate = true;
         break;
       case MeasurementTypePosition:
-        if (useF) {
-          kalmanCoreUpdateWithTofUsingF(&coreData, &m.data.tof);
-        } else {
-          kalmanCoreUpdateWithPosition(&coreData, &m.data.position);
-        }
+        kalmanCoreUpdateWithPosition(&coreData, &m.data.position);
         doneUpdate = true;
         break;
       case MeasurementTypePose:
@@ -392,7 +388,11 @@ static bool updateQueuedMeasurements(const uint32_t tick) {
         doneUpdate = true;
         break;
       case MeasurementTypeTOF:
-        kalmanCoreUpdateWithTof(&coreData, &m.data.tof);
+        if (useF) {
+          kalmanCoreUpdateWithTofUsingF(&coreData, &m.data.tof);
+        } else {
+          kalmanCoreUpdateWithTof(&coreData, &m.data.tof);
+        }
         doneUpdate = true;
         break;
       case MeasurementTypeAbsoluteHeight:
