@@ -137,6 +137,7 @@ void systemInit(void) {
   peerLocalizationInit();
   communicationManagerInit();
   p2pTaskInit();
+  colorGradientTaskInit();
 
 #ifdef APP_ENABLED
   appInit();
@@ -154,6 +155,7 @@ bool systemTest() {
   pass &= buzzerTest();
   pass &= communicationManagerTest();
   pass &= p2pTaskTest();
+  pass &= colorGradientTest();
   return pass;
 }
 
